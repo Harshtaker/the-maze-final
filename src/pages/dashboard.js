@@ -70,10 +70,8 @@ export default function Dashboard() {
   // 2. LOGOUT
   // =========================
   const handleLogout = () => {
-    if (confirm('Logout? Your progress is saved and will be restored on next login.')) {
-      // NOTE: We do NOT call logout() here — we keep the Zustand state
-      // so that on re-login, the progress is preserved.
-      // We only navigate away.
+    if (confirm('Logout?')) {
+      logout();
       router.push('/');
     }
   };

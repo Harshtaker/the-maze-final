@@ -27,14 +27,11 @@ export default function Login() {
     member4: '',
   });
 
-  // Auto-redirect if already logged in
+  // Wait for hydration before showing resume options
+  const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
-    if (existingTeam) {
-      router.push('/dashboard');
-    } else if (isAdmin) {
-      router.push('/admin/dashboard');
-    }
-  }, [existingTeam, isAdmin, router]);
+    setHydrated(true);
+  }, []);
 
   const handleAdminLogin = async (e) => {
     e.preventDefault();
@@ -183,78 +180,122 @@ export default function Login() {
           </div>
         </motion.div>
 
-        <motion.form layout onSubmit={handleSubmit} className="space-y-5">
-          <AnimatePresence mode="wait">
-            {errorMsg && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-red-500 text-sm text-center font-bold uppercase tracking-widest bg-red-950/20 py-2 border border-red-500/30"
-              >
-                {errorMsg}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <div className="space-y-4">
-            <input
-              required
-              type="text"
-              placeholder="TEAM NAME"
-              className="portal-input-adv w-full py-5 text-center text-xl font-bold tracking-widest uppercase"
-              onChange={(e) => setFormData({ ...formData, teamName: e.target.value })}
-            />
-            <input
-              required
-              type="password"
-              placeholder="TEAM PASSWORD"
-              className="portal-input-adv w-full py-5 text-center text-xl font-bold tracking-widest uppercase"
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            />
-          </div>
-
-          <AnimatePresence>
-            {!isLogin && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="space-y-4 pt-4 border-t border-[#d4af37]/20"
-              >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <input required type="text" placeholder="LEADER NAME" className="portal-input-adv py-4 text-base text-center font-bold uppercase" onChange={(e) => setFormData({ ...formData, leaderName: e.target.value })} />
-                  <input required type="tel" placeholder="PHONE NUMBER" className="portal-input-adv py-4 text-base text-center font-bold" onChange={(e) => setFormData({ ...formData, leaderPhone: e.target.value })} />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <input required type="text" placeholder="MEMBER 2" className="portal-input-adv py-4 text-sm text-center font-bold uppercase" onChange={(e) => setFormData({ ...formData, member2: e.target.value })} />
-                  <input required type="text" placeholder="MEMBER 3" className="portal-input-adv py-4 text-sm text-center font-bold uppercase" onChange={(e) => setFormData({ ...formData, member3: e.target.value })} />
-                  <input required type="text" placeholder="MEMBER 4" className="portal-input-adv py-4 text-sm text-center font-bold uppercase" onChange={(e) => setFormData({ ...formData, member4: e.target.value })} />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <motion.button
-            disabled={loading}
-            whileHover={{ scale: 1.01 }}
-            className="w-full bg-[#d4af37] text-black py-5 font-black text-base tracking-[0.4em] uppercase transition-all shadow-[0_0_30px_rgba(212,175,55,0.3)] disabled:opacity-50"
-          >
-            {loading ? 'Decrypting...' : isLogin ? 'Start Game' : 'Join Game'}
-          </motion.button>
-
-          <div className="pt-6 text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setErrorMsg('');
-              }}
-              className="hunt-text text-sm font-bold underline decoration-[#d4af37]/40 underline-offset-8 hover:text-white transition-colors"
+        <AnimatePresence mode="wait">
+          {hydrated && (existingTeam || isAdmin) && isLogin ? (
+            <motion.div
+              key="resume-box"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="space-y-4 p-8 border border-[#d4af37]/30 bg-black/60 rounded-sm"
             >
-              {isLogin ? 'No team? Create one here' : 'Back to Login'}
-            </button>
-          </div>
-        </motion.form>
+              <h2 className="hunt-text text-[#d4af37] text-lg font-bold mb-6">ACTIVE SESSION FOUND</h2>
+              {existingTeam && (
+                <button
+                  type="button"
+                  onClick={() => router.push('/dashboard')}
+                  className="w-full bg-[#d4af37] text-black py-4 font-black uppercase tracking-widest shadow-[0_0_20px_rgba(212,175,55,0.2)] hover:scale-[1.02] transition-all"
+                >
+                  RESUME {existingTeam.team_name}
+                </button>
+              )}
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => router.push('/admin/dashboard')}
+                  className="w-full bg-[#d4af37] text-black py-4 font-black uppercase tracking-widest shadow-[0_0_20px_rgba(212,175,55,0.2)] hover:scale-[1.02] transition-all"
+                >
+                  RESUME ADMIN PANEL
+                </button>
+              )}
+              <div className="pt-4 mt-4 border-t border-[#d4af37]/20">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (existingTeam) usePlayerStore.getState().logout();
+                    if (isAdmin) useAdminStore.getState().logoutAdmin();
+                  }}
+                  className="w-full text-white/50 text-xs py-3 font-bold uppercase tracking-widest hover:text-red-400 hover:bg-red-950/30 transition-all border border-transparent hover:border-red-500/30"
+                >
+                  CLEAR SESSIONS
+                </button>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.form key="login-form" layout onSubmit={handleSubmit} className="space-y-5">
+              <AnimatePresence mode="wait">
+                {errorMsg && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-red-500 text-sm text-center font-bold uppercase tracking-widest bg-red-950/20 py-2 border border-red-500/30"
+                  >
+                    {errorMsg}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div className="space-y-4">
+                <input
+                  required
+                  type="text"
+                  placeholder="TEAM NAME"
+                  className="portal-input-adv w-full py-5 text-center text-xl font-bold tracking-widest uppercase"
+                  onChange={(e) => setFormData({ ...formData, teamName: e.target.value })}
+                />
+                <input
+                  required
+                  type="password"
+                  placeholder="TEAM PASSWORD"
+                  className="portal-input-adv w-full py-5 text-center text-xl font-bold tracking-widest uppercase"
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                />
+              </div>
+
+              <AnimatePresence>
+                {!isLogin && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-4 pt-4 border-t border-[#d4af37]/20"
+                  >
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <input required type="text" placeholder="LEADER NAME" className="portal-input-adv py-4 text-base text-center font-bold uppercase" onChange={(e) => setFormData({ ...formData, leaderName: e.target.value })} />
+                      <input required type="tel" placeholder="PHONE NUMBER" className="portal-input-adv py-4 text-base text-center font-bold" onChange={(e) => setFormData({ ...formData, leaderPhone: e.target.value })} />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <input required type="text" placeholder="MEMBER 2" className="portal-input-adv py-4 text-sm text-center font-bold uppercase" onChange={(e) => setFormData({ ...formData, member2: e.target.value })} />
+                      <input required type="text" placeholder="MEMBER 3" className="portal-input-adv py-4 text-sm text-center font-bold uppercase" onChange={(e) => setFormData({ ...formData, member3: e.target.value })} />
+                      <input required type="text" placeholder="MEMBER 4" className="portal-input-adv py-4 text-sm text-center font-bold uppercase" onChange={(e) => setFormData({ ...formData, member4: e.target.value })} />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <motion.button
+                disabled={loading}
+                whileHover={{ scale: 1.01 }}
+                className="w-full bg-[#d4af37] text-black py-5 font-black text-base tracking-[0.4em] uppercase transition-all shadow-[0_0_30px_rgba(212,175,55,0.3)] disabled:opacity-50"
+              >
+                {loading ? 'Decrypting...' : isLogin ? 'Start Game' : 'Join Game'}
+              </motion.button>
+
+              <div className="pt-6 text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsLogin(!isLogin);
+                    setErrorMsg('');
+                  }}
+                  className="hunt-text text-sm font-bold underline decoration-[#d4af37]/40 underline-offset-8 hover:text-white transition-colors"
+                >
+                  {isLogin ? 'No team? Create one here' : 'Back to Login'}
+                </button>
+              </div>
+            </motion.form>
+          )}
+        </AnimatePresence>
       </main>
 
       {/* ADMIN MODAL */}
