@@ -5,7 +5,6 @@ import { supabase } from '../lib/supabase';
 import { usePlayerStore, useAdminStore } from '../lib/store';
 
 export default function Login() {
-  const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [showAdminLogin, setShowAdminLogin] = useState(false);
@@ -58,50 +57,20 @@ export default function Login() {
     setLoading(true);
     setErrorMsg('');
 
-    if (isLogin) {
-      // Fetch ALL columns to get actual progress from DB
-      const { data, error } = await supabase
-        .from('teams')
-        .select('*')
-        .eq('team_name', formData.teamName)
-        .eq('password', formData.password)
-        .single();
+    // Fetch ALL columns to get actual progress from DB
+    const { data, error } = await supabase
+      .from('teams')
+      .select('*')
+      .eq('team_name', formData.teamName)
+      .eq('password', formData.password)
+      .single();
 
-      if (error || !data) {
-        setErrorMsg('Wrong Team Name or Password!');
-      } else {
-        // playerLogin() intelligently merges DB + local state
-        // If local has higher sector (from a previous browser-close scenario),
-        // it keeps local AND pushes it back to DB.
-        playerLogin(data);
-        router.push('/dashboard');
-      }
+    if (error || !data) {
+      setErrorMsg('Wrong Team Name or Password!');
     } else {
-      const { error } = await supabase.from('teams').insert([
-        {
-          team_name: formData.teamName,
-          password: formData.password,
-          leader_name: formData.leaderName,
-          leader_phone: formData.leaderPhone,
-          member_2: formData.member2,
-          member_3: formData.member3,
-          member_4: formData.member4,
-          last_clue_start: null,
-          current_sector: 0,
-          status: 'ACTIVE',
-        },
-      ]);
-
-      if (error) {
-        setErrorMsg(
-          error.message.includes('unique')
-            ? 'This Team Name is already taken!'
-            : 'Sign up failed: ' + error.message
-        );
-      } else {
-        alert('Team Registered! Now you can Login.');
-        setIsLogin(true);
-      }
+      // playerLogin() intelligently merges DB + local state
+      playerLogin(data);
+      router.push('/dashboard');
     }
     setLoading(false);
   };
@@ -181,7 +150,7 @@ export default function Login() {
         </motion.div>
 
         <AnimatePresence mode="wait">
-          {hydrated && (existingTeam || isAdmin) && isLogin ? (
+          {hydrated && (existingTeam || isAdmin) ? (
             <motion.div
               key="resume-box"
               initial={{ opacity: 0 }}
@@ -252,47 +221,13 @@ export default function Login() {
                 />
               </div>
 
-              <AnimatePresence>
-                {!isLogin && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="space-y-4 pt-4 border-t border-[#d4af37]/20"
-                  >
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <input required type="text" placeholder="LEADER NAME" className="portal-input-adv py-4 text-base text-center font-bold uppercase" onChange={(e) => setFormData({ ...formData, leaderName: e.target.value })} />
-                      <input required type="tel" placeholder="PHONE NUMBER" className="portal-input-adv py-4 text-base text-center font-bold" onChange={(e) => setFormData({ ...formData, leaderPhone: e.target.value })} />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <input required type="text" placeholder="MEMBER 2" className="portal-input-adv py-4 text-sm text-center font-bold uppercase" onChange={(e) => setFormData({ ...formData, member2: e.target.value })} />
-                      <input required type="text" placeholder="MEMBER 3" className="portal-input-adv py-4 text-sm text-center font-bold uppercase" onChange={(e) => setFormData({ ...formData, member3: e.target.value })} />
-                      <input required type="text" placeholder="MEMBER 4" className="portal-input-adv py-4 text-sm text-center font-bold uppercase" onChange={(e) => setFormData({ ...formData, member4: e.target.value })} />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
               <motion.button
                 disabled={loading}
                 whileHover={{ scale: 1.01 }}
-                className="w-full bg-[#d4af37] text-black py-5 font-black text-base tracking-[0.4em] uppercase transition-all shadow-[0_0_30px_rgba(212,175,55,0.3)] disabled:opacity-50"
+                className="w-full bg-[#d4af37] text-black py-5 font-black text-base tracking-[0.4em] uppercase transition-all shadow-[0_0_30px_rgba(212,175,55,0.3)] disabled:opacity-50 mt-6"
               >
-                {loading ? 'Decrypting...' : isLogin ? 'Start Game' : 'Join Game'}
+                {loading ? 'Decrypting...' : 'Start Game'}
               </motion.button>
-
-              <div className="pt-6 text-center">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsLogin(!isLogin);
-                    setErrorMsg('');
-                  }}
-                  className="hunt-text text-sm font-bold underline decoration-[#d4af37]/40 underline-offset-8 hover:text-white transition-colors"
-                >
-                  {isLogin ? 'No team? Create one here' : 'Back to Login'}
-                </button>
-              </div>
             </motion.form>
           )}
         </AnimatePresence>
