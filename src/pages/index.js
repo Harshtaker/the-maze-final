@@ -8,6 +8,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [showInstallGate, setShowInstallGate] = useState(false);
   const [adminData, setAdminData] = useState({ username: '', password: '' });
   const router = useRouter();
 
@@ -30,6 +31,14 @@ export default function Login() {
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     setHydrated(true);
+    
+    // Check if app is not running in standalone (PWA) mode AND hasn't been dismissed
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone || document.referrer.includes('android-app://');
+    const dismissed = localStorage.getItem('maze_install_dismissed');
+    
+    if (!isStandalone && !dismissed) {
+      setShowInstallGate(true);
+    }
   }, []);
 
   const handleAdminLogin = async (e) => {
@@ -74,6 +83,55 @@ export default function Login() {
     }
     setLoading(false);
   };
+
+  if (hydrated && showInstallGate) {
+    return (
+      <div className="relative w-screen h-screen flex flex-col items-center justify-center bg-[#050505] p-6 text-center select-none">
+        <style jsx global>{`
+          @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Space+Mono:wght@400;700&display=swap');
+          .hunt-title { font-family: 'Cinzel', serif; }
+          .hunt-text { font-family: 'Space Mono', monospace; }
+        `}</style>
+        
+        <div className="absolute inset-0 z-0 bg-[url('/cave.webp')] bg-cover opacity-20 grayscale brightness-50 pointer-events-none" />
+        
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }} 
+          animate={{ scale: 1, opacity: 1 }} 
+          className="z-10 bg-black/80 border border-[#d4af37]/30 p-8 md:p-12 max-w-md w-full backdrop-blur-md rounded-lg shadow-[0_0_40px_rgba(212,175,55,0.15)]"
+        >
+          <img src="/icon.png" alt="App Icon" className="w-24 h-24 mx-auto mb-6 rounded-2xl shadow-[0_0_20px_rgba(212,175,55,0.4)] border border-[#d4af37]/40 p-1" />
+          
+          <h2 className="hunt-title text-2xl md:text-3xl text-white mb-2 uppercase drop-shadow-[0_0_15px_rgba(212,175,55,0.5)]">Install App</h2>
+          <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-[#d4af37]/50 to-transparent my-4" />
+          
+          <p className="text-[#f4e4bc] text-sm md:text-base opacity-80 mb-8 leading-relaxed">
+            For maximum stability and fullscreen mode, you must install The Maze on your device before starting.
+          </p>
+
+          <div className="space-y-4 text-left hunt-text text-[11px] text-[#d4af37] opacity-90 tracking-widest bg-black/60 p-5 border border-white/10 rounded-md mb-8 shadow-inner">
+            <p className="leading-relaxed">
+              <strong className="text-white">iOS (Safari):</strong><br/>Tap the Share icon <span className="text-white border border-white/30 px-1 rounded mx-1 pb-1">[↑]</span> at the bottom, then scroll down and tap &quot;Add to Home Screen&quot; <span className="text-white border border-white/30 px-1 rounded mx-1 pb-1">[+]</span>.
+            </p>
+            <div className="h-[1px] bg-white/10 w-full" />
+            <p className="leading-relaxed">
+              <strong className="text-white">Android (Chrome):</strong><br/>Tap the Menu icon <span className="text-white border border-white/30 px-1 rounded mx-1 pb-1">[⋮]</span> at the top right, then tap &quot;Install app&quot; or &quot;Add to Home screen&quot;.
+            </p>
+          </div>
+
+          <button 
+            onClick={() => {
+              localStorage.setItem('maze_install_dismissed', 'true');
+              setShowInstallGate(false);
+            }}
+            className="w-full bg-[#d4af37] text-black py-4 font-black text-sm tracking-[0.2em] uppercase rounded-sm hover:scale-[1.02] transition-all shadow-[0_0_20px_rgba(212,175,55,0.3)]"
+          >
+            I&apos;ve Installed It
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative w-screen h-screen flex items-center justify-center overflow-hidden bg-[#050505]">
