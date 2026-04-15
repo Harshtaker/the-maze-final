@@ -39,6 +39,19 @@ export default function Login() {
     if (!isStandalone && !dismissed) {
       setShowInstallGate(true);
     }
+
+    // --- ANALYTICS: Catch App Install ---
+    const handleInstall = async () => {
+      console.log('App was successfully installed!');
+      try {
+        await supabase.rpc('increment_install');
+      } catch (e) {}
+    };
+    window.addEventListener('appinstalled', handleInstall);
+    
+    return () => {
+      window.removeEventListener('appinstalled', handleInstall);
+    };
   }, []);
 
   const handleAdminLogin = async (e) => {

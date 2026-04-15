@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useAdminStore } from '../../lib/store';
+import { supabase } from '../../lib/supabase';
 
 export default function AdminDashboard() {
   const isAdmin = useAdminStore((s) => s.isAdmin);
@@ -14,6 +15,7 @@ export default function AdminDashboard() {
   const logoutAdmin = useAdminStore((s) => s.logoutAdmin);
   const router = useRouter();
   const [hydrated, setHydrated] = useState(false);
+  const [installCount, setInstallCount] = useState(0);
 
   // Wait for Zustand hydration
   useEffect(() => {
@@ -32,8 +34,19 @@ export default function AdminDashboard() {
     // Subscribe to Supabase Realtime for instant updates
     const unsubscribe = subscribeRealtime();
 
+    const fetchAnalytics = async () => {
+      try {
+        const { data } = await supabase.from('app_metrics').select('install_count').single();
+        if (data) setInstallCount(data.install_count);
+      } catch (_) {}
+    };
+    fetchAnalytics();
+
     // Fallback poll every 5s (guarantees updates even if Realtime hiccups)
-    const fallbackInterval = setInterval(fetchTeams, 5000);
+    const fallbackInterval = setInterval(() => {
+      fetchTeams();
+      fetchAnalytics();
+    }, 5000);
 
     return () => {
       if (typeof unsubscribe === 'function') unsubscribe();
@@ -103,6 +116,10 @@ export default function AdminDashboard() {
             <div className="text-center">
               <p className="data-font text-[10px] opacity-60 tracking-widest mb-2 uppercase">Total Teams</p>
               <p className="legend-font text-5xl text-white">{teams.length}</p>
+            </div>
+            <div className="text-center">
+              <p className="data-font text-[10px] opacity-60 tracking-widest mb-2 text-[#d4af37]/80 uppercase">App Installs</p>
+              <p className="legend-font text-5xl text-[#d4af37]">{installCount}</p>
             </div>
             <div className="text-center">
               <p className="data-font text-[10px] opacity-60 tracking-widest mb-2 text-green-500/80 uppercase">Active</p>
