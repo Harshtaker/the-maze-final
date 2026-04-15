@@ -24,6 +24,7 @@ export default function Dashboard() {
   const [msg, setMsg] = useState({ type: '', text: '' });
   const [isProcessing, setIsProcessing] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const [cameraError, setCameraError] = useState(null);
 
   const router = useRouter();
   const scannerRef = useRef(null);
@@ -190,6 +191,28 @@ export default function Dashboard() {
   // =========================
   // 5. CAMERA START LOGIC
   // =========================
+  const handleInitiateScan = async () => {
+    try {
+      // 1. Explicitly request the stream - this triggers the browser's "Allow/Deny" popup
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: "environment" } 
+      });
+
+      // 2. If the user clicks "Allow", the code continues here. Stop the test stream.
+      stream.getTracks().forEach(track => track.stop());
+
+      // 3. Launch QR Scanner visually
+      setCameraError(null);
+      setIsScanning(true);
+    } catch (err) {
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError' || err.name === 'NotFoundError') {
+        setCameraError("OPTICAL SENSORS OFFLINE");
+      } else {
+        alert("Camera Initialization Error: " + err.message);
+      }
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
     
@@ -209,11 +232,7 @@ export default function Dashboard() {
         } catch (err) {
           if (isMounted) {
             setIsScanning(false);
-            if (err?.name === 'NotAllowedError') {
-              alert("MISSION BLOCKED: Camera access is denied. Please click the 'Lock' icon in your browser address bar and set Camera to 'Allow' to continue.");
-            } else {
-              alert('Camera Error: You must use HTTPS or your device blocked access. ' + (err?.message || err));
-            }
+            setCameraError("OPTICAL SENSORS OFFLINE");
           }
         }
       };
@@ -338,11 +357,48 @@ export default function Dashboard() {
       </main>
 
       <button
-        onClick={() => setIsScanning(true)}
+        onClick={handleInitiateScan}
         className="fixed bottom-10 w-full max-w-sm py-5 bg-[#d4af37] text-black f-h text-xl shadow-[0_0_40px_rgba(212,175,55,0.3)] z-20 uppercase font-black tracking-widest transition-transform"
       >
         Initiate Scan
       </button>
+
+      {/* CAMERA ERROR OVERLAY */}
+      <AnimatePresence>
+        {cameraError && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-black/95 flex flex-col items-center justify-center p-6 backdrop-blur-md"
+          >
+            <div className="border border-red-500/30 bg-red-950/20 p-10 max-w-sm text-center shadow-[0_0_50px_rgba(255,0,0,0.15)] relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-red-600 animate-pulse" />
+              <h2 className="f-h text-2xl md:text-3xl text-red-500 mb-6 drop-shadow-[0_0_15px_rgba(255,0,0,0.8)]">
+                {cameraError}
+              </h2>
+              <div className="h-[1px] w-full bg-red-500/20 mb-8" />
+              
+              <p className="f-b text-[#f4e4bc] text-sm mb-8 leading-relaxed opacity-90">
+                Your device has blocked camera access.
+              </p>
+              
+              <div className="f-b text-white text-[11px] mb-10 leading-relaxed bg-black/40 p-4 border border-white/5 rounded-sm">
+                <p>Tap the <strong>Lock / Settings (🔒)</strong> icon in your URL bar.</p>
+                <div className="h-[1px] w-full bg-white/10 my-3" />
+                <p>Toggle Camera to <strong>ON / Allow</strong>.</p>
+              </div>
+
+              <button 
+                onClick={() => setCameraError(null)} 
+                className="w-full py-4 bg-[#d4af37] text-black uppercase f-b text-xs font-black tracking-[0.2em] shadow-[0_0_20px_rgba(212,175,55,0.3)] hover:scale-[1.02] transition-transform"
+              >
+                Acknowledge
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* SCANNER OVERLAY */}
       <AnimatePresence>
